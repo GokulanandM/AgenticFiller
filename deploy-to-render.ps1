@@ -28,10 +28,30 @@ $headers = @{
     "Content-Type" = "application/json"
 }
 
+# Get owner ID first
+Write-Host "`nGetting account information..." -ForegroundColor Yellow
+try {
+    $user = Invoke-RestMethod -Uri "$apiBase/owners" -Headers $headers -Method Get
+    $ownerId = $user[0].owner.id
+    Write-Host "Owner ID: $ownerId" -ForegroundColor Green
+} catch {
+    Write-Host "Error getting owner ID: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Trying alternative method..." -ForegroundColor Yellow
+    # Try to get from user endpoint
+    try {
+        $userInfo = Invoke-RestMethod -Uri "$apiBase/user" -Headers $headers -Method Get
+        $ownerId = $userInfo.user.id
+        Write-Host "Owner ID: $ownerId" -ForegroundColor Green
+    } catch {
+        Write-Host "Could not get owner ID. You may need to deploy manually." -ForegroundColor Red
+        exit 1
+    }
+}
+
 # Check if service already exists
 Write-Host "`nChecking for existing service..." -ForegroundColor Yellow
 try {
-    $services = Invoke-RestMethod -Uri "$apiBase/services" -Headers $headers -Method Get
+    $services = Invoke-RestMethod -Uri "$apiBase/services?ownerId=$ownerId" -Headers $headers -Method Get
     $existingService = $services | Where-Object { $_.service.name -eq $ServiceName }
     
     if ($existingService) {
@@ -49,25 +69,30 @@ Write-Host "`nCreating new Render service..." -ForegroundColor Yellow
 $serviceConfig = @{
     type = "web_service"
     name = $ServiceName
-    ownerId = ""  # Will be set by API
+    ownerId = $ownerId
     repo = "https://github.com/$GitHubRepo"
     branch = "main"
     region = $Region
     planId = "starter"  # Free plan
-    envVars = @(
-        @{ key = "PYTHON_VERSION"; value = "3.11.9" }
-        @{ key = "PORT"; value = "8000" }
-        @{ key = "HOST"; value = "0.0.0.0" }
-        @{ key = "LOG_LEVEL"; value = "INFO" }
-        @{ key = "DEBUG"; value = "false" }
-        @{ key = "REQUIRE_APPROVAL"; value = "true" }
-        @{ key = "AZURE_DEPLOYMENT_ID"; value = "gpt-4o-mini" }
-        # These should be set in Render dashboard for security
-        # @{ key = "AZURE_API_KEY"; value = "YOUR_KEY" }
-        # @{ key = "AZURE_ENDPOINT"; value = "YOUR_ENDPOINT" }
-    )
     buildCommand = "pip install --upgrade pip && pip install -r requirements.txt && playwright install chromium && playwright install-deps chromium"
     startCommand = "uvicorn main:app --host 0.0.0.0 --port `$PORT"
+    serviceDetails = @{
+        runtime = "python"
+        envSpecificDetails = @{
+            pythonVersion = "3.11.9"
+        }
+        envVars = @(
+            @{ key = "PYTHON_VERSION"; value = "3.11.9" }
+            @{ key = "PORT"; value = "8000" }
+            @{ key = "HOST"; value = "0.0.0.0" }
+            @{ key = "LOG_LEVEL"; value = "INFO" }
+            @{ key = "DEBUG"; value = "false" }
+            @{ key = "REQUIRE_APPROVAL"; value = "true" }
+            @{ key = "AZURE_DEPLOYMENT_ID"; value = "gpt-4o-mini" }
+            @{ key = "AZURE_API_KEY"; value = "d2d05917a33d4c8e8ffb00ea56d47be3" }
+            @{ key = "AZURE_ENDPOINT"; value = "https://elsai-dev.openai.azure.com/" }
+        )
+    }
 } | ConvertTo-Json -Depth 10
 
 try {
