@@ -25,3 +25,8 @@ services:
         value: "true"
       - key: AZURE_DEPLOYMENT_ID
         value: gpt-4o-mini
+      # These will be set in Render dashboard (not in YAML for security)
+      # AZURE_API_KEY - Set in Render dashboard
+      # AZURE_ENDPOINT - Set in Render dashboard
+      # AZURE_OPENAI_API_KEY - Set in Render dashboard (optional)
+      # AZURE_OPENAI_ENDPOINT - Set in Render dashboard (optional)
