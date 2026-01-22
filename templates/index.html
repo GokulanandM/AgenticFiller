@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Automation Agent</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { opacity: 0.9; }
+        .content {
+            padding: 40px;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:active { transform: translateY(0); }
+        button.secondary {
+            background: #6c757d;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #0f0;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Form Automation Agent</h1>
+            <p>Safe and legitimate form automation with compliance features</p>
+        </div>
+        <div class="content">
+            <!-- Connection Test Section -->
+            <div class="section">
+                <h2>1. Test Azure OpenAI Connection</h2>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="apiKey" placeholder="Your Azure OpenAI API key">
+                </div>
+                <div class="form-group">
+                    <label>Endpoint</label>
+                    <input type="text" id="endpoint" placeholder="https://your-resource.openai.azure.com/">
+                </div>
+                <div class="form-group">
+                    <label>Deployment ID</label>
+                    <input type="text" id="deploymentId" value="gpt-4-turbo" placeholder="gpt-4-turbo">
+                </div>
+                <button onclick="testConnection()">Test Connection</button>
+                <div id="connectionStatus"></div>
+            </div>
+
+            <!-- Form Analysis Section -->
+            <div class="section">
+                <h2>2. Analyze Form</h2>
+                <div class="form-group">
+                    <label>Form URL</label>
+                    <input type="text" id="formUrl" placeholder="https://example.com/form or http://localhost:3000/test-form">
+                </div>
+                <button onclick="analyzeForm()">Analyze Form</button>
+                <div id="analysisStatus"></div>
+                <div id="formSchema" style="margin-top: 20px;"></div>
+            </div>
+
+            <!-- Form Filling Section -->
+            <div class="section">
+                <h2>3. Fill and Submit Form</h2>
+                <div class="grid">
+                    <div>
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="fullName" placeholder="John Doe">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="email" placeholder="john@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="text" id="phone" placeholder="+1-555-1234">
+                        </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" id="address" placeholder="123 Main St">
+                        </div>
+                        <div class="form-group">
+                            <label>Date of Birth</label>
+                            <input type="date" id="dob">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-group">
+                            <label>Education</label>
+                            <input type="text" id="education" placeholder="Bachelor's Degree">
+                        </div>
+                        <div class="form-group">
+                            <label>GPA</label>
+                            <input type="number" id="cgpa" step="0.1" placeholder="3.8">
+                        </div>
+                        <div class="form-group">
+                            <label>Experience (years)</label>
+                            <input type="number" id="experience" placeholder="2">
+                        </div>
+                        <div class="form-group">
+                            <label>Skills</label>
+                            <input type="text" id="skills" placeholder="Python, Testing">
+                        </div>
+                        <div class="form-group">
+                            <label>Additional Info</label>
+                            <textarea id="additionalInfo" placeholder="Any additional information"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="userConfirmed"> I confirm I am authorized to submit this form
+                    </label>
+                </div>
+                <button onclick="fillForm()">Fill and Submit Form</button>
+                <div id="fillStatus"></div>
+            </div>
+
+            <!-- Execution Log -->
+            <div class="section">
+                <h2>Execution Log</h2>
+                <div class="log" id="executionLog">Ready. Start by testing your connection or analyzing a form.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        function log(message) {
+            const logDiv = document.getElementById('executionLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function showStatus(elementId, message, type = 'info') {
+            const div = document.getElementById(elementId);
+            div.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function testConnection() {
+            const apiKey = document.getElementById('apiKey').value;
+            const endpoint = document.getElementById('endpoint').value;
+            const deploymentId = document.getElementById('deploymentId').value;
+
+            if (!apiKey || !endpoint) {
+                showStatus('connectionStatus', 'Please provide API key and endpoint', 'error');
+                return;
+            }
+
+            log('Testing Azure OpenAI connection...');
+            showStatus('connectionStatus', '<span class="loading"></span> Testing...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/test-connection`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: apiKey, endpoint, deployment_id: deploymentId })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showStatus('connectionStatus', '✅ Connection successful!', 'success');
+                    log('Connection test successful');
+                } else {
+                    showStatus('connectionStatus', `❌ ${data.message}`, 'error');
+                    log(`Connection test failed: ${data.message}`);
+                }
+            } catch (error) {
+                showStatus('connectionStatus', `❌ Error: ${error.message}`, 'error');
+                log(`Connection test error: ${error.message}`);
+            }
+        }
+
+        async function analyzeForm() {
+            const formUrl = document.getElementById('formUrl').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const endpoint = document.getElementById('endpoint').value;
+            const deploymentId = document.getElementById('deploymentId').value;
+
+            if (!formUrl) {
+                showStatus('analysisStatus', 'Please provide a form URL', 'error');
+                return;
+            }
+
+            log(`Analyzing form: ${formUrl}`);
+            showStatus('analysisStatus', '<span class="loading"></span> Analyzing form...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/analyze-form`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        form_url: formUrl,
+                        api_key: apiKey || undefined,
+                        endpoint: endpoint || undefined,
+                        deployment_id: deploymentId
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success && data.form_schema) {
+                    showStatus('analysisStatus', `✅ Form analyzed! Found ${data.form_schema.fields.length} fields`, 'success');
+                    log(`Form analysis successful: ${data.form_schema.fields.length} fields found`);
+                    
+                    // Display schema
+                    const schemaDiv = document.getElementById('formSchema');
+                    schemaDiv.innerHTML = `
+                        <h3>Form Fields:</h3>
+                        <ul>
+                            ${data.form_schema.fields.map(f => 
+                                `<li><strong>${f.label}</strong> (${f.field_type}) - ${f.required ? 'Required' : 'Optional'}</li>`
+                            ).join('')}
+                        </ul>
+                    `;
+                } else {
+                    showStatus('analysisStatus', `❌ ${data.error || 'Analysis failed'}`, 'error');
+                    log(`Form analysis failed: ${data.error}`);
+                }
+            } catch (error) {
+                showStatus('analysisStatus', `❌ Error: ${error.message}`, 'error');
+                log(`Form analysis error: ${error.message}`);
+            }
+        }
+
+        async function fillForm() {
+            const formUrl = document.getElementById('formUrl').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const endpoint = document.getElementById('endpoint').value;
+            const deploymentId = document.getElementById('deploymentId').value;
+            const userConfirmed = document.getElementById('userConfirmed').checked;
+
+            if (!formUrl) {
+                showStatus('fillStatus', 'Please provide a form URL', 'error');
+                return;
+            }
+
+            if (!userConfirmed) {
+                showStatus('fillStatus', 'Please confirm authorization', 'error');
+                return;
+            }
+
+            const profileData = {
+                full_name: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                dob: document.getElementById('dob').value,
+                education: document.getElementById('education').value,
+                cgpa: parseFloat(document.getElementById('cgpa').value) || undefined,
+                experience: parseInt(document.getElementById('experience').value) || undefined,
+                skills: document.getElementById('skills').value,
+                additional_info: document.getElementById('additionalInfo').value
+            };
+
+            log(`Filling form: ${formUrl}`);
+            showStatus('fillStatus', '<span class="loading"></span> Filling form...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/fill-form`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        form_url: formUrl,
+                        profile_data: profileData,
+                        api_key: apiKey || undefined,
+                        endpoint: endpoint || undefined,
+                        deployment_id: deploymentId,
+                        user_confirmed: userConfirmed
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Log execution steps
+                if (data.execution_log) {
+                    data.execution_log.forEach(entry => log(entry));
+                }
+
+                if (data.success) {
+                    showStatus('fillStatus', 
+                        `✅ Form submitted! Status: ${data.status}, Fields filled: ${data.fields_filled}`, 
+                        'success');
+                } else {
+                    showStatus('fillStatus', 
+                        `❌ Submission failed: ${data.error || data.status}`, 
+                        'error');
+                }
+            } catch (error) {
+                showStatus('fillStatus', `❌ Error: ${error.message}`, 'error');
+                log(`Form filling error: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
