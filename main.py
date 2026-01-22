@@ -45,9 +45,24 @@ app = FastAPI(
 )
 
 # Mount static files and templates
+templates = None
 try:
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-    templates = Jinja2Templates(directory="templates")
+    import os
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+    
+    # Create directories if they don't exist
+    os.makedirs(static_dir, exist_ok=True)
+    os.makedirs(templates_dir, exist_ok=True)
+    
+    if os.path.exists(static_dir):
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    
+    if os.path.exists(templates_dir):
+        templates = Jinja2Templates(directory=templates_dir)
+        
+    logger.info(f"Static files directory: {static_dir}")
+    logger.info(f"Templates directory: {templates_dir}")
 except Exception as e:
     logger.warning(f"Could not mount static files: {e}")
     templates = None
@@ -104,6 +119,31 @@ async def health():
         "version": settings.app_version,
         "approval_required": settings.require_approval
     }
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Handle favicon requests to prevent 404 errors."""
+    from fastapi.responses import Response
+    return Response(status_code=204)  # No content
+
+
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc):
+    """Handle 404 errors gracefully."""
+    if request.url.path.startswith("/static/"):
+        logger.warning(f"Static file not found: {request.url.path}")
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Static file not found", "path": request.url.path}
+        )
+    # For other 404s, return appropriate response
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=404,
+        content={"error": "Not found", "path": request.url.path}
+    )
 
 
 @app.post("/test-connection", response_model=TestConnectionResponse)
